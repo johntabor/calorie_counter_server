@@ -24,6 +24,10 @@ app.use(bodyParser.urlencoded({ extended: false }))
 app.use(express.json())
 app.use(cors())
 
+app.get('/', (req, res) => {
+    res.send('welcome to the index page')
+})
+
 
 app.post('/getFoodRecommendations', (req, res) => {
     const { name } = req.body;
