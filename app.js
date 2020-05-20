@@ -9,7 +9,7 @@ const SALT_ROUNDS = 10
 /* postgres config */
 
 const cn = {
-    host: process.env.DATABASE_URL
+    connectionString: process.env.DATABASE_URL
     /* port: 5432,
     database: 'test',
     user: 'john',
