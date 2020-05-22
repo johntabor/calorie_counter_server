@@ -21,6 +21,27 @@ app.get('/', (req, res) => {
 })
 
 
+app.post('/changeCalorieGoal', (req, res) => {
+    const { user_id, daily_caloric_goal, current_date } = req.body
+    db.tx(async t => {
+        await t.none('UPDATE users SET daily_caloric_goal = $1 WHERE id = $2',
+            [daily_caloric_goal, user_id])
+        await t.none('UPDATE entries SET calorie_goal = $1 WHERE user_id = $2 AND date >= $3::date',
+            [daily_caloric_goal, user_id, current_date])
+    }).then(() => {
+        res.json({
+            status: 1
+        })
+    }).catch(err => {
+        console.log("error: ", err)
+        res.json({
+            status: -1,
+            error: 'Sorry! There was a server error. Please try again'
+        })
+    })
+})
+
+
 app.post('/getFoodRecommendations', (req, res) => {
     const { name } = req.body;
     console.log(name)
@@ -55,10 +76,13 @@ app.post('/deleteFoodFromEntry', (req, res) => {
 })
 
 const createEntry = (user_id, date) => {
-    db.one('INSERT into entries(user_id, date) VALUES ($1, $2) RETURNING id',
-        [user_id, date])
-        .then(data => data.id)
-        .catch(err => console.log(err))
+    db.tx(async t => {
+        const user = await t.one('SELECT * FROM users WHERE id = $1', [user_id])
+        const entry_id = await t.one('INSERT into entries(user_id, date, calorie_goal) VALUES ($1, $2, $3) RETURNING id',
+            [user_id, date, user.daily_caloric_goal])
+        return { entry_id }
+    }).then(data => data.entry_id)
+    .catch(err => console.log(err))
 }
 
 const getFoodForEntry = async (entry_id) => {
@@ -74,7 +98,8 @@ const getFoodForEntry = async (entry_id) => {
 
 const getEntryId = async (user_id, date) => {
     try {
-        const data = await db.any('SELECT id FROM entries WHERE user_id = $1 AND date = $2', [user_id, date])
+        const data = await db.any('SELECT id FROM entries WHERE user_id = $1 AND date = $2::date',
+            [user_id, date])
         return (data.length != 0) ? data[0].id : -1
     } catch (err) {
         console.log(err)
@@ -85,14 +110,12 @@ app.post('/getEntry', (req, res) => {
     const { user_id, date } = req.body;
     getEntryId(user_id, date)
         .then(id => {
-            console.log("entry id returned: ", id)
             const entry_id = (id != -1) ? id : createEntry(user_id, date)
             getFoodForEntry(entry_id).then(data => res.json(data))
         })
 })
 
 app.post('/getCalorieGoal', (req, res) => {
-    console.log("in /getCalorieGoal")
     const { user_id } = req.body;
     db.any('SELECT daily_caloric_goal FROM users WHERE id = $1 LIMIT 1', [user_id])
         .then(data => res.json(data[0]))
