@@ -3,18 +3,10 @@ const bodyParser = require('body-parser')
 const cors = require('cors')
 const pgp = require('pg-promise')();
 const bcrypt = require('bcryptjs');
-//const cn = require('./config')
+const cn = require('./config')
 const SALT_ROUNDS = 10
 
 /* postgres config */
-
-const cn = {
-    connectionString: process.env.DATABASE_URL
-    /* port: 5432,
-    database: 'test',
-    user: 'john',
-    password: 'Football55', */
-}; 
 const db = pgp(cn)
 
 /* express config */
