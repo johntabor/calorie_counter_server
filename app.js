@@ -3,8 +3,12 @@ const bodyParser = require('body-parser')
 const cors = require('cors')
 const pgp = require('pg-promise')();
 const bcrypt = require('bcryptjs');
+const jwt = require('jsonwebtoken')
 const cn = require('./config')
+const dotenv = require('dotenv')
 const SALT_ROUNDS = 10
+
+dotenv.config()
 
 /* postgres config */
 const db = pgp(cn)
@@ -20,14 +24,41 @@ app.get('/', (req, res) => {
     res.send('welcome to the index page')
 })
 
+// app.post('/token', autbenticateToken, (req, res) => {
+    // req.user now available
+    //const accessToken = jwt.sign({ id: 1 }, process.env.ACCESS_TOKEN_SECRET)
+    //res.json({ accessToken: accessToken })
+// })
+/*
+function authenticateToken(req, res, next) {
+    const authHeader = req.headers['authorization']
+    const token = authHeader && authHeader.split(' ')[1]
+    if (token == null) return res.sendStatus(401)
+    jwt.verify(token, process.env.ACCESS_TOKEN_SECRET, (err, user) => {
+        if (err) return res.sendStatus(403)
+        req.user = user
+        next()
+    })
+} */
+
+
+app.post('/getUser', (req, res) => {
+    const { user_id } = req.body
+    db.any('SELECT * FROM users WHERE id = $1', [user_id])
+    .then(data => res.json(data[0]))
+    .catch(err => console.log(err))
+})
+
 
 app.post('/changeCalorieGoal', (req, res) => {
-    const { user_id, daily_caloric_goal, current_date } = req.body
+    console.log('in /changeCalorieGoal')
+    console.log(req.body)
+    const { user_id, daily_caloric_goal, date } = req.body
     db.tx(async t => {
         await t.none('UPDATE users SET daily_caloric_goal = $1 WHERE id = $2',
             [daily_caloric_goal, user_id])
         await t.none('UPDATE entries SET calorie_goal = $1 WHERE user_id = $2 AND date >= $3::date',
-            [daily_caloric_goal, user_id, current_date])
+            [daily_caloric_goal, user_id, date])
     }).then(() => {
         res.json({
             status: 1
@@ -108,12 +139,32 @@ const getEntryId = async (user_id, date) => {
 
 app.post('/getEntry', (req, res) => {
     const { user_id, date } = req.body;
+    db.tx(async t => {
+        const entryData = await db.any('SELECT id, calorie_goal FROM entries WHERE user_id = $1 AND date = $2::date',
+            [user_id, date])
+        const { id, calorie_goal } = entryData[0]
+        const foods = await db.any('SELECT id,name,unit,calories,number FROM food WHERE entry_id = $1',
+            [id])
+        return { foods, calorie_goal }
+    }).then(data => res.json(data))
+    .catch(err => {
+        console.log("error: ", err)
+        res.json({
+            status: -1,
+            error: 'Sorry! There was a server error. Please try again'
+        })
+    })
+})
+
+/*
+app.post('/getEntry', (req, res) => {
+    const { user_id, date } = req.body;
     getEntryId(user_id, date)
         .then(id => {
             const entry_id = (id != -1) ? id : createEntry(user_id, date)
             getFoodForEntry(entry_id).then(data => res.json(data))
         })
-})
+}) */
 
 app.post('/getCalorieGoal', (req, res) => {
     const { user_id } = req.body;
