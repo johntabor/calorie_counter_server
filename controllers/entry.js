@@ -4,31 +4,30 @@ const getEntry = (db) => (req, res) => {
     db.tx(async t => {
         const entryData = await db.any('SELECT id, calorie_goal FROM entries WHERE user_id = $1 AND date = $2::date',
             [user.id, date])
-        let entry = (entryData.length === 0) ? 
+        let entry = (entryData.length === 0) ?
             await createEntry(user.id, date) : entryData[0]
 
         const foods = await db.any('SELECT id,name,unit,calories,number FROM food WHERE entry_id = $1',
             [entry.id])
         return { foods, calorieGoal: entry.calorie_goal }
     }).then(data => res.json(data))
-    .catch(err => {
-        console.log("error: ", err)
-        res.json({
-            status: -1,
-            error: 'Sorry! There was a server error. Please try again'
+        .catch(err => {
+            console.log("error: ", err)
+            res.json({
+                status: -1,
+                error: 'Sorry! There was a server error. Please try again'
+            })
         })
-    })
 }
 
 
-const addFoodToEntry = (db) => (req, res) => {
+const logFood = (db) => (req, res) => {
     const user = req.user
-    const { name, unit, calories, number, date } = req.body;
-    getEntryId(user.id, date)
-        .then(id => {
-            const entry_id = id
+    const { name, unit, calories, quantity, date } = req.body;
+    getEntryId(user.id, date, db)
+        .then(entryId => {
             db.none('INSERT INTO food(name, unit, calories, number, entry_id) VALUES ($1, $2, $3, $4, $5)',
-                [name, unit, calories, number, entry_id])
+                [name, unit, calories, quantity, entryId])
                 .then(() => res.end('success'))
                 .catch(error => {
                     console.log(error)
@@ -55,7 +54,7 @@ const createEntry = async (userId, date) => {
     }
 }
 
-const getEntryId = async (userId, date) => {
+const getEntryId = async (userId, date, db) => {
     try {
         const data = await db.any('SELECT id FROM entries WHERE user_id = $1 AND date = $2::date',
             [userId, date])
@@ -67,6 +66,6 @@ const getEntryId = async (userId, date) => {
 
 module.exports = {
     getEntry: getEntry,
-    addFoodToEntry: addFoodToEntry,
+    logFood: logFood,
     deleteFoodFromEntry: deleteFoodFromEntry
 }

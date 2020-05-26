@@ -35,7 +35,7 @@ app.post('/getFood', auth.requireAuth, food.getFood(db))
 app.post('/getFoodRecommendations', auth.requireAuth, food.getFoodRecommendations(db))
 
 app.post('/getEntry', auth.requireAuth, entry.getEntry(db))
-app.post('/addFoodToEntry', auth.requireAuth, entry.addFoodToEntry(db))
+app.post('/logFood', auth.requireAuth, entry.logFood(db))
 app.post('/deleteFoodFromEntry', auth.requireAuth, entry.deleteFoodFromEntry(db))
 
 app.listen(process.env.PORT || port, () => console.log(`Example app listening at http://localhost:${process.env.PORT || port}`))
