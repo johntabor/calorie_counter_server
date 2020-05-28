@@ -1,7 +1,7 @@
 const getFoodRecommendations = (db) => (req, res) => {
     const { name } = req.body;
     const matchString = name + '%'
-    db.any('SELECT name,unit,calories,number FROM food WHERE name LIKE $1', [matchString])
+    db.any('SELECT * FROM food WHERE name LIKE $1', [matchString])
         .then(data => {
             res.json(data)
         })

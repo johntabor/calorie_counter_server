@@ -23,11 +23,13 @@ const getEntry = (db) => (req, res) => {
 
 const logFood = (db) => (req, res) => {
     const user = req.user
-    const { name, unit, calories, quantity, date } = req.body;
+    const { name, unit, calories, quantity, 
+        carbs, protein, fat, date } = req.body;
+    console.log('req.body: ', req.body)
     getEntryId(user.id, date, db)
         .then(entryId => {
-            db.none('INSERT INTO food(name, unit, calories, number, entry_id) VALUES ($1, $2, $3, $4, $5)',
-                [name, unit, calories, quantity, entryId])
+            db.none('INSERT INTO food(name, unit, calories, number, entry_id, carbs, protein, fat) VALUES ($1, $2, $3, $4, $5, $6, $7, $8)',
+                [name, unit, calories, quantity, entryId, carbs, protein, fat])
                 .then(() => res.end('success'))
                 .catch(error => {
                     console.log(error)
