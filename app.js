@@ -2,8 +2,7 @@ const express = require('express')
 const bodyParser = require('body-parser')
 const cors = require('cors')
 const pgp = require('pg-promise')();
-const bcrypt = require('bcryptjs');
-const cn = require('./config')
+const bcrypt = require('bcryptjs')
 const dotenv = require('dotenv')
 
 const login = require('./controllers/login')
@@ -16,7 +15,9 @@ const entry = require('./controllers/entry')
 dotenv.config()
 
 /* postgres config */
-const db = pgp(cn)
+const db = pgp({
+    connectionString: process.env.DATABASE_URL
+})
 
 /* express config */
 const app = express()
